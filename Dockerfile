@@ -21,12 +21,9 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 COPY . .
 
 # Instalar dependências do Laravel
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader \
-    && php artisan key:generate --force \
-    && php artisan config:clear \
-    && php artisan cache:clear \
-    && php artisan migrate --force
-# Permissões (IMPORTANTE)
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+
+# Permissões
 RUN chmod -R 775 storage bootstrap/cache
 
 # Porta do Render
