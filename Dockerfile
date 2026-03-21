@@ -29,5 +29,4 @@ RUN chmod -R 775 storage bootstrap/cache
 # Porta do Render
 EXPOSE 10000
 
-# Rodar aplicação
 CMD php artisan serve --host=0.0.0.0 --port=10000
