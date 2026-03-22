@@ -4,8 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mercadinho Interno</title> 
-      <!-- FAVICON -->
-   <link rel="icon" href="{{ asset('download.jpg') }}?v=2">
+    <link rel="icon" type="image/png" href="{{ asset('logo-integracao.png') }}?v=1">
+    <link rel="shortcut icon" href="{{ asset('logo-integracao.png') }}?v=1">
+    <link rel="apple-touch-icon" href="{{ asset('logo-integracao.png') }}?v=1"> 
     @stack('styles')
 
 @php
@@ -401,7 +402,43 @@
             .page-header h2 {
                 font-size: 22px;
             }
-        }
+        } 
+         
+            /* PADRÃO (MOBILE E TABLET) */
+            .footer-logo {
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                margin-top: 40px;
+                padding-bottom: 10px;
+                gap: 4px;
+            }
+
+            .footer-logo img {
+                width: 110px;
+                object-fit: contain;
+                opacity: 0.7;
+            }
+
+            .footer-logo p {
+                font-size: 12px;
+                color: #64748b;
+                font-weight: 600;
+                margin: 0;
+            }
+
+            /* DESKTOP (FIXO EMBAIXO) */
+            @media (min-width: 1024px) {
+                .footer-logo {
+                    position: fixed;
+                    bottom: 8px;
+                    left: 0;
+                    width: 100%;
+                    margin-top: 0;
+                    pointer-events: none;
+                }
+            }
     </style>
 </head>
 <body>
@@ -477,5 +514,12 @@
     });
 </script>
 
+
+    <!-- FOOTER -->
+    <div class="footer-logo">
+        <img src="{{ asset('logo-integracao.png') }}" alt="Integração">
+        <p>Desenvolvimento por Técnicos</p>
+    </div>
+</div>
 </body>
 </html>
