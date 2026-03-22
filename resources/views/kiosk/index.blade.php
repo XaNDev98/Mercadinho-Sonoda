@@ -108,7 +108,33 @@
             width: 40px;
             height: 40px;
         }
-    }
+    } html.kiosk-html,
+body.kiosk-body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+    touch-action: manipulation;
+}
+
+.kiosk-only {
+    min-height: 100vh;
+    height: 100vh;
+    padding: 10px 10px 72px 10px;
+    overflow: hidden;
+}
+
+.kiosk-only .retirada-shell {
+    max-width: 100%;
+    height: calc(100vh - 82px);
+    display: flex;
+    flex-direction: column;
+}
+
+.kiosk-only .retirada-top {
+    display: none !important;
+}
+    
 </style>
 @endpush
 
@@ -365,8 +391,8 @@
                                     </div>
 
                                     <input type="hidden" name="itens[{{ $loop->index }}][produto_id]" value="{{ $produto->id }}">
-                                    <input type="hidden" class="produto-nome" value="{{ $produto->nome }}">
-                                    <input type="hidden" class="produto-preco" value="{{ $produto->preco }}">
+                                    <input type="hidden" class="produto-nome-hidden" value="{{ $produto->nome }}">
+                                    <input type="hidden" class="produto-preco-hidden" value="{{ $produto->preco }}">
                                 </div>
                             </div>
                         @endforeach
@@ -481,7 +507,7 @@
     <div id="kioskUnlockOverlay" class="kiosk-unlock-overlay" onclick="fecharDesbloqueio()"></div>
 
     <div id="kioskUnlockModal" class="kiosk-unlock-modal">
-        <h3 class="kiosk-unlock-title">Desativar modo kiosk</h3>
+        <h3 class="kiosk-unlock-title">Desativar trava tela :)</h3>
         <p class="kiosk-unlock-text">Digite a senha para voltar ao painel administrativo.</p>
 
         <form method="POST" action="{{ route('kiosk.desativar') }}">
@@ -501,40 +527,60 @@
         </form>
     </div>
 @endif
-
+ 
 <script>
+    const MODO_KIOSK_ATIVO = @json($modoFixo);
+
     function limparMensagens() {
         const erroBox = document.getElementById('mensagem-erro');
         const sucessoBox = document.getElementById('mensagem-sucesso');
 
-        erroBox.style.display = 'none';
-        erroBox.innerText = '';
+        if (erroBox) {
+            erroBox.style.display = 'none';
+            erroBox.innerText = '';
+        }
 
-        sucessoBox.style.display = 'none';
-        sucessoBox.innerText = '';
+        if (sucessoBox) {
+            sucessoBox.style.display = 'none';
+            sucessoBox.innerText = '';
+        }
     }
 
     function mostrarErro(texto) {
         const erroBox = document.getElementById('mensagem-erro');
+        if (!erroBox) return;
+
         erroBox.innerText = texto;
         erroBox.style.display = 'block';
     }
 
     function mostrarSucesso(texto) {
         const sucessoBox = document.getElementById('mensagem-sucesso');
+        if (!sucessoBox) return;
+
         sucessoBox.innerText = texto;
         sucessoBox.style.display = 'block';
     }
 
     function mostrarSemFoto() {
-        document.getElementById('funcionario-foto').style.display = 'none';
-        document.getElementById('funcionario-foto').src = '';
-        document.getElementById('funcionario-sem-foto').style.display = 'flex';
+        const foto = document.getElementById('funcionario-foto');
+        const semFoto = document.getElementById('funcionario-sem-foto');
+
+        if (foto) {
+            foto.style.display = 'none';
+            foto.src = '';
+        }
+
+        if (semFoto) {
+            semFoto.style.display = 'flex';
+        }
     }
 
     function mostrarFoto(src) {
         const foto = document.getElementById('funcionario-foto');
         const semFoto = document.getElementById('funcionario-sem-foto');
+
+        if (!foto) return;
 
         foto.onerror = function () {
             mostrarSemFoto();
@@ -542,24 +588,47 @@
 
         foto.src = src;
         foto.style.display = 'block';
-        semFoto.style.display = 'none';
+
+        if (semFoto) {
+            semFoto.style.display = 'none';
+        }
+    }
+
+    function limparQuantidades() {
+        const inputs = document.querySelectorAll('.produto-card input[type="number"]');
+
+        inputs.forEach(input => {
+            input.value = 0;
+        });
     }
 
     function resetarFuncionario() {
-        document.getElementById('funcionario-info').style.display = 'none';
-        document.getElementById('form-retirada').style.display = 'none';
-        document.getElementById('funcionario-nome').innerText = '';
-        document.getElementById('funcionario-folha').innerText = '';
-        document.getElementById('funcionario-cargo').innerText = '';
-        document.getElementById('numero_folha_hidden').value = '';
+        const info = document.getElementById('funcionario-info');
+        const form = document.getElementById('form-retirada');
+        const nome = document.getElementById('funcionario-nome');
+        const folha = document.getElementById('funcionario-folha');
+        const cargo = document.getElementById('funcionario-cargo');
+        const hiddenFolha = document.getElementById('numero_folha_hidden');
+
+        if (info) info.style.display = 'none';
+        if (form) form.style.display = 'none';
+        if (nome) nome.innerText = '';
+        if (folha) folha.innerText = '';
+        if (cargo) cargo.innerText = '';
+        if (hiddenFolha) hiddenFolha.value = '';
+
         mostrarSemFoto();
+        limparQuantidades();
         atualizarResumo();
+        fecharConfirmacao();
     }
 
     async function buscarFuncionario() {
-        const numeroFolha = document.getElementById('numero_folha_busca').value.trim();
+        const numeroFolhaInput = document.getElementById('numero_folha_busca');
         const infoBox = document.getElementById('funcionario-info');
         const form = document.getElementById('form-retirada');
+
+        const numeroFolha = numeroFolhaInput ? numeroFolhaInput.value.trim() : '';
 
         limparMensagens();
         resetarFuncionario();
@@ -577,20 +646,34 @@
                 }
             });
 
-            const data = await response.json();
+            let data = null;
+
+            try {
+                data = await response.json();
+            } catch (e) {
+                mostrarErro('Resposta inválida ao buscar colaborador.');
+                return;
+            }
 
             if (!response.ok || !data.success) {
                 mostrarErro(data.message || 'Colaborador não encontrado.');
                 return;
             }
 
-            document.getElementById('funcionario-nome').innerText = data.funcionario.nome ?? '';
-            document.getElementById('funcionario-folha').innerText = data.funcionario.numero_folha ?? '';
-            document.getElementById('funcionario-cargo').innerText = data.funcionario.cargo ?? 'Não informado';
-            document.getElementById('numero_folha_hidden').value = data.funcionario.numero_folha ?? '';
+            const funcionario = data.funcionario || {};
 
-            const fotoFuncionario = typeof data.funcionario.foto === 'string'
-                ? data.funcionario.foto.trim()
+            const nomeEl = document.getElementById('funcionario-nome');
+            const folhaEl = document.getElementById('funcionario-folha');
+            const cargoEl = document.getElementById('funcionario-cargo');
+            const hiddenFolha = document.getElementById('numero_folha_hidden');
+
+            if (nomeEl) nomeEl.innerText = funcionario.nome ?? '';
+            if (folhaEl) folhaEl.innerText = funcionario.numero_folha ?? '';
+            if (cargoEl) cargoEl.innerText = funcionario.cargo ?? 'Não informado';
+            if (hiddenFolha) hiddenFolha.value = funcionario.numero_folha ?? '';
+
+            const fotoFuncionario = typeof funcionario.foto === 'string'
+                ? funcionario.foto.trim()
                 : '';
 
             if (fotoFuncionario !== '') {
@@ -599,8 +682,8 @@
                 mostrarSemFoto();
             }
 
-            infoBox.style.display = 'block';
-            form.style.display = 'none';
+            if (infoBox) infoBox.style.display = 'block';
+            if (form) form.style.display = 'none';
 
             mostrarSucesso('Colaborador encontrado com sucesso.');
         } catch (error) {
@@ -610,8 +693,12 @@
 
     function mostrarProdutos() {
         limparMensagens();
-        document.getElementById('form-retirada').style.display = 'block';
-        document.getElementById('form-retirada').scrollIntoView({
+
+        const form = document.getElementById('form-retirada');
+        if (!form) return;
+
+        form.style.display = 'block';
+        form.scrollIntoView({
             behavior: 'smooth',
             block: 'start'
         });
@@ -619,7 +706,13 @@
 
     function alterarQuantidade(index, variacao, estoqueMaximo) {
         const input = document.getElementById(`quantidade_${index}`);
+        if (!input) return;
+
         let valorAtual = parseInt(input.value || 0, 10);
+
+        if (isNaN(valorAtual)) {
+            valorAtual = 0;
+        }
 
         valorAtual += variacao;
 
@@ -631,9 +724,12 @@
     }
 
     function filtrarProdutos() {
-        const categoria = document.getElementById('filtro-categoria').value.trim().toLowerCase();
-        const busca = document.getElementById('busca-produto').value.trim().toLowerCase();
+        const filtroCategoria = document.getElementById('filtro-categoria');
+        const buscaProduto = document.getElementById('busca-produto');
         const cards = document.querySelectorAll('.produto-card');
+
+        const categoria = filtroCategoria ? filtroCategoria.value.trim().toLowerCase() : '';
+        const busca = buscaProduto ? buscaProduto.value.trim().toLowerCase() : '';
 
         cards.forEach(card => {
             const categoriaCard = (card.dataset.categoria || '').toLowerCase();
@@ -642,15 +738,39 @@
             const categoriaOk = categoria === '' || categoriaCard === categoria;
             const nomeOk = busca === '' || nomeCard.includes(busca);
 
-            card.style.display = (categoriaOk && nomeOk) ? 'block' : 'none';
+            card.style.display = (categoriaOk && nomeOk) ? '' : 'none';
         });
     }
 
     function formatarReal(valor) {
-        return valor.toLocaleString('pt-BR', {
+        const numero = Number(valor || 0);
+
+        return numero.toLocaleString('pt-BR', {
             style: 'currency',
             currency: 'BRL'
         });
+    }
+
+    function obterDadosProduto(card) {
+        const inputQuantidade = card.querySelector('input[type="number"]');
+        const inputNomeHidden = card.querySelector('.produto-nome-hidden');
+        const inputPrecoHidden = card.querySelector('.produto-preco-hidden');
+        const inputProdutoId = card.querySelector('input[name*="[produto_id]"]');
+
+        const quantidade = parseInt(inputQuantidade?.value || 0, 10) || 0;
+        const nome = (card.dataset.nomeOriginal || inputNomeHidden?.value || '').trim();
+
+        let preco = parseFloat(card.dataset.preco || inputPrecoHidden?.value || 0);
+        if (isNaN(preco)) preco = 0;
+
+        const produtoId = inputProdutoId ? inputProdutoId.value : '';
+
+        return {
+            quantidade,
+            nome,
+            preco,
+            produtoId
+        };
     }
 
     function atualizarResumo() {
@@ -661,19 +781,17 @@
         const resumoTotal = document.getElementById('resumo-total');
         const resumoQuantidadeItens = document.getElementById('resumo-quantidade-itens');
 
+        if (!resumoItens || !resumoTotal || !resumoQuantidadeItens || !resumoVazio || !resumoConteudo) {
+            return;
+        }
+
         resumoItens.innerHTML = '';
 
         let total = 0;
         let itensSelecionados = 0;
 
         cards.forEach(card => {
-            const inputQuantidade = card.querySelector('input[type="number"]');
-            const inputNome = card.querySelector('.produto-nome');
-            const inputPreco = card.querySelector('.produto-preco');
-
-            const quantidade = parseInt(inputQuantidade.value || 0, 10);
-            const nome = inputNome ? inputNome.value : '';
-            const preco = parseFloat(inputPreco ? inputPreco.value : 0);
+            const { quantidade, nome, preco } = obterDadosProduto(card);
 
             if (quantidade > 0) {
                 const subtotal = quantidade * preco;
@@ -707,15 +825,20 @@
     }
 
     function abrirConfirmacao() {
+        limparMensagens();
+
         const cards = document.querySelectorAll('.produto-card');
         const tbody = document.getElementById('confirmacao-itens');
-        const nomeFuncionario = document.getElementById('funcionario-nome').innerText.trim();
-        const folhaFuncionario = document.getElementById('funcionario-folha').innerText.trim();
+        const nomeFuncionarioEl = document.getElementById('funcionario-nome');
+        const folhaFuncionarioEl = document.getElementById('funcionario-folha');
+        const numeroFolhaHidden = document.getElementById('numero_folha_hidden');
 
-        if (!document.getElementById('numero_folha_hidden').value) {
+        if (!numeroFolhaHidden || !numeroFolhaHidden.value) {
             mostrarErro('Busque um colaborador antes de confirmar.');
             return;
         }
+
+        if (!tbody) return;
 
         tbody.innerHTML = '';
 
@@ -723,16 +846,11 @@
         let temItens = false;
 
         cards.forEach(card => {
-            const inputQuantidade = card.querySelector('input[type="number"]');
-            const inputNome = card.querySelector('.produto-nome');
-            const inputPreco = card.querySelector('.produto-preco');
-
-            const quantidade = parseInt(inputQuantidade.value || 0, 10);
-            const nome = inputNome ? inputNome.value : '';
-            const preco = parseFloat(inputPreco ? inputPreco.value : 0);
+            const { quantidade, nome, preco } = obterDadosProduto(card);
 
             if (quantidade > 0) {
                 temItens = true;
+
                 const subtotal = quantidade * preco;
                 total += subtotal;
 
@@ -752,16 +870,28 @@
             return;
         }
 
-        document.getElementById('confirmacao-funcionario').innerText = nomeFuncionario;
-        document.getElementById('confirmacao-folha').innerText = folhaFuncionario;
-        document.getElementById('confirmacao-total').innerText = formatarReal(total);
-        document.getElementById('confirmacao-overlay').style.display = 'block';
-        document.getElementById('confirmacao-modal').style.display = 'block';
+        const nomeFuncionario = nomeFuncionarioEl ? nomeFuncionarioEl.innerText.trim() : '';
+        const folhaFuncionario = folhaFuncionarioEl ? folhaFuncionarioEl.innerText.trim() : '';
+
+        const confirmacaoFuncionario = document.getElementById('confirmacao-funcionario');
+        const confirmacaoFolha = document.getElementById('confirmacao-folha');
+        const confirmacaoTotal = document.getElementById('confirmacao-total');
+        const overlay = document.getElementById('confirmacao-overlay');
+        const modal = document.getElementById('confirmacao-modal');
+
+        if (confirmacaoFuncionario) confirmacaoFuncionario.innerText = nomeFuncionario;
+        if (confirmacaoFolha) confirmacaoFolha.innerText = folhaFuncionario;
+        if (confirmacaoTotal) confirmacaoTotal.innerText = formatarReal(total);
+        if (overlay) overlay.style.display = 'block';
+        if (modal) modal.style.display = 'block';
     }
 
     function fecharConfirmacao() {
-        document.getElementById('confirmacao-overlay').style.display = 'none';
-        document.getElementById('confirmacao-modal').style.display = 'none';
+        const overlay = document.getElementById('confirmacao-overlay');
+        const modal = document.getElementById('confirmacao-modal');
+
+        if (overlay) overlay.style.display = 'none';
+        if (modal) modal.style.display = 'none';
     }
 
     function abrirDesbloqueio() {
@@ -769,14 +899,12 @@
         const modal = document.getElementById('kioskUnlockModal');
         const input = document.getElementById('kioskSenha');
 
-        if (overlay && modal) {
-            overlay.style.display = 'block';
-            modal.style.display = 'block';
+        if (overlay) overlay.style.display = 'block';
+        if (modal) modal.style.display = 'block';
 
-            setTimeout(() => {
-                if (input) input.focus();
-            }, 100);
-        }
+        setTimeout(() => {
+            if (input) input.focus();
+        }, 100);
     }
 
     function fecharDesbloqueio() {
@@ -789,22 +917,90 @@
         if (input) input.value = '';
     }
 
-    document.getElementById('numero_folha_busca').addEventListener('keypress', function(event) {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            buscarFuncionario();
-        }
-    });
+    function aplicarModoTelaCheiaVisual() {
+        document.documentElement.classList.add('kiosk-html');
+        document.body.classList.add('kiosk-body');
+        document.body.style.overflow = 'hidden';
+        document.documentElement.style.overflow = 'hidden';
+        window.scrollTo(0, 1);
+    }
 
-    document.addEventListener('keydown', function (event) {
-        if (event.key === 'Escape') {
-            fecharConfirmacao();
-            fecharDesbloqueio();
-        }
-    });
+    async function tentarFullscreenAutomatico() {
+        if (!MODO_KIOSK_ATIVO) return;
+        if (document.fullscreenElement) return;
 
-    document.addEventListener('DOMContentLoaded', function () {
+        const el = document.documentElement;
+
+        try {
+            if (el.requestFullscreen) {
+                await el.requestFullscreen();
+            } else if (el.webkitRequestFullscreen) {
+                await el.webkitRequestFullscreen();
+            } else if (el.msRequestFullscreen) {
+                await el.msRequestFullscreen();
+            }
+        } catch (e) {
+            // navegador pode bloquear sem interação
+        }
+    }
+
+    function ativarFullscreenNoPrimeiroToque() {
+        if (!MODO_KIOSK_ATIVO) return;
+
+        const entrar = async () => {
+            if (!document.fullscreenElement) {
+                await tentarFullscreenAutomatico();
+            }
+
+            document.removeEventListener('touchstart', entrar);
+            document.removeEventListener('mousedown', entrar);
+            document.removeEventListener('click', entrar);
+        };
+
+        document.addEventListener('touchstart', entrar, { passive: true });
+        document.addEventListener('mousedown', entrar);
+        document.addEventListener('click', entrar);
+    }
+
+    document.addEventListener('DOMContentLoaded', async function () {
+        const numeroFolhaBusca = document.getElementById('numero_folha_busca');
+
+        if (numeroFolhaBusca) {
+            numeroFolhaBusca.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    buscarFuncionario();
+                }
+            });
+        }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape') {
+                fecharConfirmacao();
+                fecharDesbloqueio();
+            }
+        });
+
+        if (MODO_KIOSK_ATIVO) {
+            aplicarModoTelaCheiaVisual();
+
+            setTimeout(() => {
+                tentarFullscreenAutomatico();
+            }, 200);
+
+            setTimeout(() => {
+                tentarFullscreenAutomatico();
+            }, 800);
+
+            setTimeout(() => {
+                tentarFullscreenAutomatico();
+            }, 1500);
+
+            ativarFullscreenNoPrimeiroToque();
+        }
+
         atualizarResumo();
     });
 </script>
+
 @endsection
