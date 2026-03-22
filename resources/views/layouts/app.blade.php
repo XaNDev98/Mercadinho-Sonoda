@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mercadinho Interno</title> 
-    <link rel="icon" type="image/png" href="{{ asset('logo-integracao.png') }}?v=1">
-    <link rel="shortcut icon" href="{{ asset('logo-integracao.png') }}?v=1">
-    <link rel="apple-touch-icon" href="{{ asset('logo-integracao.png') }}?v=1"> 
+    <link rel="icon" type="image/png" href="/logo-integracao.png"> 
+    <link rel="icon" type="image/jpeg" href="/download.jpg?v=1">
+    <link rel="shortcut icon" href="/download.jpg?v=1">
     @stack('styles')
 
 @php
@@ -517,7 +517,7 @@
 
     <!-- FOOTER -->
     <div class="footer-logo">
-        <img src="{{ asset('logo-integracao.png') }}" alt="Integração">
+        <img src="{{ asset('logo-integracao.png') }}?v=2">
         <p>Desenvolvimento por Técnicos</p>
     </div>
 </div>
