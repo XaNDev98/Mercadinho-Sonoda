@@ -3,13 +3,12 @@
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/retiradas-create.css') }}">
 <style>
-    .kiosk-lock-floating {
+        .kiosk-lock-floating {
         position: fixed;
-        left: 50%;
+        right: 14px;   /* joga pra direita */
         bottom: 14px;
-        transform: translateX(-50%);
         z-index: 9999;
-    }
+        }
 
     .kiosk-lock-btn {
         width: 42px;
