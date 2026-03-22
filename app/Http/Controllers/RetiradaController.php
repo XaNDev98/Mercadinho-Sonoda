@@ -156,7 +156,9 @@ class RetiradaController extends Controller
             ->first();
 
         if (!$funcionario) {
-            return back()->withInput()->with('error', 'Funcionário não encontrado pelo número da folha.');
+            return back()
+                ->withInput()
+                ->with('error', 'Funcionário não encontrado pelo número da folha.');
         }
 
         DB::beginTransaction();
@@ -210,7 +212,10 @@ class RetiradaController extends Controller
 
             if (!$teveItemValido) {
                 DB::rollBack();
-                return back()->withInput()->with('error', 'Informe ao menos um produto com quantidade maior que zero.');
+
+                return back()
+                    ->withInput()
+                    ->with('error', 'Informe ao menos um produto com quantidade maior que zero.');
             }
 
             $valorTotal = RetiradaItem::where('retirada_id', $retirada->id)->sum('subtotal');
@@ -222,12 +227,21 @@ class RetiradaController extends Controller
 
             DB::commit();
 
+            if (session('kiosk_modo_fixo', false)) {
+                return redirect()
+                    ->route('kiosk')
+                    ->with('success', 'Retirada registrada com sucesso.');
+            }
+
             return redirect()
                 ->route('retiradas.index')
                 ->with('success', 'Retirada registrada com sucesso.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->withInput()->with('error', $e->getMessage());
+
+            return back()
+                ->withInput()
+                ->with('error', $e->getMessage());
         }
     }
 
