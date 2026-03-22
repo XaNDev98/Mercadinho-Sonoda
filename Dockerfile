@@ -25,4 +25,7 @@ RUN chmod -R 775 storage bootstrap/cache
 
 EXPOSE 10000
 
-CMD php artisan config:clear && php artisan cache:clear && php artisan serve --host=0.0.0.0 --port=10000
+CMD php artisan config:clear && php artisan cache:clear && php artisan serve --host=0.0.0.0 --port=10000 
+
+
+RUN php artisan storage:link || true
