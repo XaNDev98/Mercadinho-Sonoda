@@ -4,9 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | Mercadinho Interno</title>
-    <link rel="stylesheet" href="{{ asset('css/login.css') }}">
-</head> 
-    <script>  
+    <link rel="stylesheet" href="{{ asset('css/login.css') }}"> 
+        <script>  
         * {
     box-sizing: border-box;
 }
@@ -262,6 +261,8 @@ button:hover {
     }
 }
     </script>
+</head> 
+
 <body>
     <div class="login-wrapper">
         <div class="login-box">
