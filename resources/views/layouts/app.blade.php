@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mercadinho Interno</title> 
       <!-- FAVICON -->
-    <link rel="icon" href="{{ env('APP_FAVICON') }}?v=1">
-    <link rel="shortcut icon" href="{{ env('APP_FAVICON') }}?v=1">
-    <link rel="apple-touch-icon" href="{{ env('APP_FAVICON') }}?v=1">
+   <link rel="icon" href="{{ asset('download.jpg') }}?v=2">
     @stack('styles')
 
 @php
