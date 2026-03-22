@@ -481,7 +481,7 @@
     <div id="kioskUnlockOverlay" class="kiosk-unlock-overlay" onclick="fecharDesbloqueio()"></div>
 
     <div id="kioskUnlockModal" class="kiosk-unlock-modal">
-        <h3 class="kiosk-unlock-title">Desativar modo kiosk</h3>
+        <h3 class="kiosk-unlock-title">Desativar trava tela :)</h3>
         <p class="kiosk-unlock-text">Digite a senha para voltar ao painel administrativo.</p>
 
         <form method="POST" action="{{ route('kiosk.desativar') }}">
