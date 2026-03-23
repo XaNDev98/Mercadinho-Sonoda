@@ -17,11 +17,11 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 COPY . .
 
-RUN rm -f .env
-
-RUN composer install --no-interaction --prefer-dist --optimize-autoloader
+RUN composer install --no-interaction --prefer-dist --optimize-autoloader --no-scripts
 
 RUN chmod -R 775 storage bootstrap/cache
+
+RUN mkdir -p storage/app/public/produtos
 
 RUN php artisan storage:link || true
 
