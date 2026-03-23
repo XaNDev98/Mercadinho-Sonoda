@@ -44,13 +44,14 @@ class SincronizarFuncionariosSecullum extends Command
         }
 
         $this->info('Token gerado com sucesso.');
-        $this->warn('Limpando tabela de funcionários antes da sincronização...');
-        Funcionario::truncate();
+        $this->warn('Preservando funcionários manuais e sincronizando somente os da Secullum...');
 
         $salvos = 0;
         $atualizados = 0;
         $comFoto = 0;
-        $idsAtivos = [];
+        $comSenhaMercadinho = 0;
+
+        $secullumAtivos = [];
 
         try {
             foreach ($bancos as $bancoId) {
@@ -109,18 +110,23 @@ class SincronizarFuncionariosSecullum extends Command
                         $cargo = null;
                     }
 
+                    $senhaMercadinho = $this->extrairSenhaMercadinho(
+                        $item['RespostasPerguntasAdicionais'] ?? []
+                    );
+
                     $funcionario = Funcionario::updateOrCreate(
                         [
                             'banco_id'    => $bancoId,
                             'secullum_id' => $secullumId,
                         ],
                         [
-                            'nome'         => trim((string) ($item['Nome'] ?? '')),
-                            'numero_folha' => trim((string) ($item['NumeroFolha'] ?? '')),
-                            'cargo'        => $cargo,
-                            'foto'         => $fotoBase64,
-                            'ativo'        => 1,
-                            'demissao'     => null,
+                            'nome'             => trim((string) ($item['Nome'] ?? '')),
+                            'numero_folha'     => trim((string) ($item['NumeroFolha'] ?? '')),
+                            'cargo'            => $cargo,
+                            'senha_mercadinho' => $senhaMercadinho,
+                            'foto'             => $fotoBase64,
+                            'ativo'            => 1,
+                            'demissao'         => null,
                         ]
                     );
 
@@ -130,26 +136,106 @@ class SincronizarFuncionariosSecullum extends Command
                         $atualizados++;
                     }
 
-                    $idsAtivos[] = $bancoId . '-' . $secullumId;
+                    $secullumAtivos[] = [
+                        'banco_id' => (string) $bancoId,
+                        'secullum_id' => (string) $secullumId,
+                    ];
 
                     if (! empty($fotoBase64)) {
                         $comFoto++;
                     }
+
+                    if (! empty($senhaMercadinho)) {
+                        $comSenhaMercadinho++;
+                    }
+                }
+            }
+
+            /*
+             * Desativa SOMENTE os funcionários da Secullum que não vieram mais na sincronização.
+             * Funcionários manuais (secullum_id null) não são afetados.
+             */
+            $funcionariosSecullum = Funcionario::whereNotNull('secullum_id')->get();
+
+            foreach ($funcionariosSecullum as $funcionario) {
+                $encontrado = collect($secullumAtivos)->contains(function ($item) use ($funcionario) {
+                    return (string) $item['banco_id'] === (string) $funcionario->banco_id
+                        && (string) $item['secullum_id'] === (string) $funcionario->secullum_id;
+                });
+
+                if (! $encontrado) {
+                    $funcionario->update([
+                        'ativo' => 0,
+                        'demissao' => now(),
+                    ]);
                 }
             }
 
             $this->info('Sincronização concluída com sucesso.');
             $this->info('Bancos sincronizados: ' . count($bancos));
-            $this->info('Funcionários ativos sincronizados: ' . count($idsAtivos));
+            $this->info('Funcionários ativos sincronizados: ' . count($secullumAtivos));
             $this->info('Funcionários salvos: ' . $salvos);
             $this->info('Funcionários atualizados: ' . $atualizados);
             $this->info('Funcionários com foto: ' . $comFoto);
+            $this->info('Funcionários com senha do mercadinho: ' . $comSenhaMercadinho);
+            $this->info('Funcionários manuais preservados com sucesso.');
 
             return Command::SUCCESS;
         } catch (\Throwable $e) {
             $this->error('Erro durante a sincronização: ' . $e->getMessage());
             return Command::FAILURE;
         }
+    }
+
+    private function extrairSenhaMercadinho(array $respostas): ?string
+    {
+        if (empty($respostas)) {
+            return null;
+        }
+
+        foreach ($respostas as $resposta) {
+            if (! is_array($resposta)) {
+                continue;
+            }
+
+            $pergunta = $resposta['Pergunta']['Descricao']
+                ?? $resposta['Pergunta']['Nome']
+                ?? $resposta['PerguntaDescricao']
+                ?? $resposta['Descricao']
+                ?? $resposta['Nome']
+                ?? null;
+
+            if (! is_string($pergunta) || trim($pergunta) === '') {
+                continue;
+            }
+
+            if (mb_strtoupper(trim($pergunta)) !== 'SENHA DO MERCADINHO') {
+                continue;
+            }
+
+            $valor = $resposta['Resposta']
+                ?? $resposta['Valor']
+                ?? $resposta['Texto']
+                ?? $resposta['DescricaoResposta']
+                ?? null;
+
+            if (is_array($valor)) {
+                $valor = $valor['Descricao']
+                    ?? $valor['Nome']
+                    ?? $valor['Valor']
+                    ?? null;
+            }
+
+            if ($valor === null) {
+                return null;
+            }
+
+            $valor = trim((string) $valor);
+
+            return $valor !== '' ? $valor : null;
+        }
+
+        return null;
     }
 
     private function normalizarFoto(string $body): ?string
@@ -245,19 +331,19 @@ class SincronizarFuncionariosSecullum extends Command
     private function ehImagemBinaria(string $conteudo): bool
     {
         if (str_starts_with($conteudo, "\xFF\xD8\xFF")) {
-            return true; // JPG
+            return true;
         }
 
         if (str_starts_with($conteudo, "\x89PNG")) {
-            return true; // PNG
+            return true;
         }
 
         if (str_starts_with($conteudo, "GIF87a") || str_starts_with($conteudo, "GIF89a")) {
-            return true; // GIF
+            return true;
         }
 
         if (substr($conteudo, 0, 4) === "RIFF" && substr($conteudo, 8, 4) === "WEBP") {
-            return true; // WEBP
+            return true;
         }
 
         return false;
