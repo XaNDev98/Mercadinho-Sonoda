@@ -16,20 +16,50 @@
                 </p>
             </div>
 
-            <div class="funcionarios-header-actions">
+            <div class="funcionarios-header-actions" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+
                 <div class="funcionarios-qty-badge">
                     Quantidade: {{ $funcionarios->count() }}
                 </div>
 
-                <form method="POST" action="{{ route('funcionarios.sincronizar') }}" onsubmit="return confirmarSincronizacao(this);" class="sync-form">
+            
+                <a href="{{ route('funcionarios.create') }}"
+                    style="
+                            display:flex;
+                            align-items:center;
+                            justify-content:center;
+                            padding:8px;
+                            border-radius:8px;
+                            background:transparent;
+                            color:#1e3a8a;
+                            text-decoration:none;
+                            transition:0.2s;
+                    "
+                    onmouseover="this.style.background='#eff6ff'; this.style.transform='scale(1.08)'"
+                    onmouseout="this.style.background='transparent'; this.style.transform='scale(1)'">
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="none"
+        viewBox="0 0 24 24" stroke="#1e3a8a" stroke-width="2.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+            d="M12 4v16m8-8H4" />
+    </svg>
+
+</a>
+
+                {{-- BOTÃO SINCRONIZAR --}}
+                <form method="POST" action="{{ route('funcionarios.sincronizar') }}"
+                      onsubmit="return confirmarSincronizacao(this);" class="sync-form">
                     @csrf
                     <button id="btn-sincronizar" type="submit" class="btn-sync">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582M20 20v-5h-.581M5.8 9A7 7 0 0119 8m-.8 7A7 7 0 015 16" />
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none"
+                             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                  d="M4 4v5h.582M20 20v-5h-.581M5.8 9A7 7 0 0119 8m-.8 7A7 7 0 015 16" />
                         </svg>
                         Sincronizar
                     </button>
                 </form>
+
             </div>
         </div>
 
@@ -77,47 +107,6 @@
             </div>
         @endif
 
-        @if(session('sync_output'))
-            <div class="sync-output-card">
-                <div class="sync-output-header">
-                    Resultado da sincronização
-                </div>
-
-                <div class="sync-output-body">
-                    @php
-                        $sync = session('sync_output');
-                    @endphp
-
-                    <div class="sync-stats-grid">
-                        <div class="sync-stat-box">
-                            <div class="sync-stat-label">Status</div>
-                            <div class="sync-stat-value">
-                                {{ $sync['status'] ?? 'Finalizado' }}
-                            </div>
-                        </div>
-
-                        <div class="sync-stat-box">
-                            <div class="sync-stat-label">Funcionários sincronizados</div>
-                            <div class="sync-stat-value">
-                                {{ $sync['funcionarios_sincronizados'] ?? 0 }}
-                            </div>
-                        </div>
-
-                        <div class="sync-stat-box">
-                            <div class="sync-stat-label">Fotos recebidas</div>
-                            <div class="sync-stat-value">
-                                {{ $sync['fotos_recebidas'] ?? 0 }}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="sync-console">
-                        {{ $sync['texto'] ?? '' }}
-                    </div>
-                </div>
-            </div>
-        @endif
-
         <div class="table-card">
             <div class="table-wrap">
                 <table class="funcionarios-table">
@@ -126,7 +115,8 @@
                             <th>Colaborador</th>
                             <th>Banco</th>
                             <th>Número Folha</th>
-                            <th>Setor</th>
+                            <th>Setor</th> 
+                            <th>Senha Mercadinho</th>
                         </tr>
                     </thead>
 
@@ -136,15 +126,9 @@
                                 <td>
                                     <div class="funcionario-colaborador">
                                         @if($funcionario->foto)
-                                            <img
-                                                src="{{ $funcionario->foto }}"
-                                                alt="Foto"
-                                                class="funcionario-foto"
-                                            >
+                                            <img src="{{ $funcionario->foto }}" class="funcionario-foto">
                                         @else
-                                            <div class="funcionario-sem-foto">
-                                                S/F
-                                            </div>
+                                            <div class="funcionario-sem-foto">S/F</div>
                                         @endif
 
                                         <div class="funcionario-nome">
@@ -169,11 +153,18 @@
                                     <span class="badge-soft">
                                         {{ $funcionario->cargo ?? 'Não informado' }}
                                     </span>
+                                </td>  
+
+                                <td>
+                                    <span class="badge-soft">
+                                        {{ $funcionario->senha_mercadinho ?? 'Não informada' }}
+                                    </span>
                                 </td>
+
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="empty-row">
+                                <td colspan="5" class="empty-row">
                                     Nenhum funcionário cadastrado.
                                 </td>
                             </tr>
@@ -187,18 +178,21 @@
 </div>
 
 <script>
-    function confirmarSincronizacao(form) {
-        const botao = document.getElementById('btn-sincronizar');
+function confirmarSincronizacao(form) {
+    const botao = document.getElementById('btn-sincronizar');
 
-        botao.disabled = true;
-        botao.innerHTML = `
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="animation:girar 1s linear infinite;">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582M20 20v-5h-.581M5.8 9A7 7 0 0119 8m-.8 7A7 7 0 015 16" />
-            </svg>
-            Sincronizando...
-        `;
+    botao.disabled = true;
+    botao.innerHTML = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+            fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+            style="animation:girar 1s linear infinite;">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M4 4v5h.582M20 20v-5h-.581M5.8 9A7 7 0 0119 8m-.8 7A7 7 0 015 16" />
+        </svg>
+        Sincronizando...
+    `;
 
-        return true;
-    }
+    return true;
+}
 </script>
 @endsection
