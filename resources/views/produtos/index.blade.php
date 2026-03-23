@@ -96,7 +96,7 @@
                                 <td>
                                     @if(!empty($produto->imagem))
                                         <img
-                                            src="{{ asset('storage/produtos/' . $produto->imagem) }}"
+                                            src="{{ asset('storage/' . $produto->imagem) }}"
                                             alt="{{ $produto->nome }}"
                                             class="produto-thumb"
                                             onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
