@@ -146,12 +146,13 @@ class RetiradaController extends Controller
     {
         $request->validate([
             'numero_folha' => 'required|string',
+            'senha_mercadinho' => 'required|string',
             'itens' => 'required|array|min:1',
             'itens.*.produto_id' => 'required|exists:produtos,id',
             'itens.*.quantidade' => 'required|integer|min:0',
         ]);
 
-        $funcionario = Funcionario::where('numero_folha', $request->numero_folha)
+        $funcionario = Funcionario::where('numero_folha', trim($request->numero_folha))
             ->where('ativo', true)
             ->first();
 
@@ -159,6 +160,18 @@ class RetiradaController extends Controller
             return back()
                 ->withInput()
                 ->with('error', 'Funcionário não encontrado pelo número da folha.');
+        }
+
+        if (empty($funcionario->senha_mercadinho)) {
+            return back()
+                ->withInput()
+                ->with('error', 'Este funcionário não possui senha do mercadinho cadastrada.');
+        }
+
+        if ((string) $funcionario->senha_mercadinho !== (string) trim($request->senha_mercadinho)) {
+            return back()
+                ->withInput()
+                ->with('error', 'Senha do mercadinho inválida.');
         }
 
         DB::beginTransaction();
