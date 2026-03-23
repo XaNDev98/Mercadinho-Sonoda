@@ -53,5 +53,18 @@ Route::middleware('secullum.auth')->group(function () {
     Route::post('/kiosk/lock', [KioskController::class, 'lock'])->name('kiosk.lock');
 
     Route::post('/kiosk/ativar', [KioskController::class, 'ativarModoFixo'])->name('kiosk.ativar');
-    Route::post('/kiosk/desativar', [KioskController::class, 'desativarModoFixo'])->name('kiosk.desativar');
+    Route::post('/kiosk/desativar', [KioskController::class, 'desativarModoFixo'])->name('kiosk.desativar'); 
+
+    
+Route::get('/debug-imagem', function () {
+    $arquivo = 'produtos/Za3XOvFRgDabvWfzLXQv2faf1PVtLa3kmLTfTgJY.jpg';
+
+    return response()->json([
+        'storage_link_existe' => file_exists(public_path('storage')),
+        'storage_link_is_link' => is_link(public_path('storage')),
+        'arquivo_em_storage_app_public' => file_exists(storage_path('app/public/' . $arquivo)),
+        'arquivo_em_public_storage' => file_exists(public_path('storage/' . $arquivo)),
+        'public_storage_path' => public_path('storage/' . $arquivo),
+        'storage_app_public_path' => storage_path('app/public/' . $arquivo),
+    ]);
 });
