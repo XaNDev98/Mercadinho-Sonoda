@@ -3,12 +3,12 @@
 @push('styles')
 <link rel="stylesheet" href="{{ asset('css/retiradas-create.css') }}">
 <style>
-        .kiosk-lock-floating {
+    .kiosk-lock-floating {
         position: fixed;
-        right: 14px;   /* joga pra direita */
+        right: 14px;
         bottom: 14px;
         z-index: 9999;
-        }
+    }
 
     .kiosk-lock-btn {
         width: 42px;
@@ -86,16 +86,60 @@
     }
 
     .kiosk-only .retirada-top {
-        display: none;
+        display: none !important;
     }
 
     .kiosk-only {
         min-height: 100vh;
-        padding: 18px 18px 70px 18px;
+        height: 100vh;
+        padding: 10px 10px 72px 10px;
+        overflow: hidden;
     }
 
     .kiosk-only .retirada-shell {
         max-width: 100%;
+        height: calc(100vh - 82px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    html.kiosk-html,
+    body.kiosk-body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        overscroll-behavior: none;
+        touch-action: manipulation;
+    }
+
+    .senha-box {
+        margin-top: 16px;
+        padding: 14px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .senha-box label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .senha-box input {
+        width: 100%;
+        height: 46px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 0 14px;
+        font-size: 15px;
+        outline: none;
+    }
+
+    .senha-box input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
     }
 
     @media (max-width: 768px) {
@@ -107,33 +151,7 @@
             width: 40px;
             height: 40px;
         }
-    } html.kiosk-html,
-body.kiosk-body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    overscroll-behavior: none;
-    touch-action: manipulation;
-}
-
-.kiosk-only {
-    min-height: 100vh;
-    height: 100vh;
-    padding: 10px 10px 72px 10px;
-    overflow: hidden;
-}
-
-.kiosk-only .retirada-shell {
-    max-width: 100%;
-    height: calc(100vh - 82px);
-    display: flex;
-    flex-direction: column;
-}
-
-.kiosk-only .retirada-top {
-    display: none !important;
-}
-    
+    }
 </style>
 @endpush
 
@@ -178,6 +196,18 @@ body.kiosk-body {
 
         <div id="mensagem-erro" class="alert-box alert-box--error" style="display:none;"></div>
         <div id="mensagem-sucesso" class="alert-box alert-box--success" style="display:none;"></div>
+
+        @if(session('error'))
+            <div class="alert-inline alert-inline--error">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if(session('success'))
+            <div class="alert-inline alert-inline--success">
+                {{ session('success') }}
+            </div>
+        @endif
 
         <div class="retirada-grid">
             <div class="panel-card">
@@ -262,6 +292,7 @@ body.kiosk-body {
                 <form method="POST" action="{{ route('retiradas.store') }}" id="form-retirada" style="display:none;">
                     @csrf
                     <input type="hidden" name="numero_folha" id="numero_folha_hidden">
+                    <input type="hidden" name="senha_mercadinho" id="senha_mercadinho_hidden">
 
                     <div class="produtos-header">
                         <h3 class="panel-title panel-title--no-margin">Produtos</h3>
@@ -288,12 +319,6 @@ body.kiosk-body {
                         </div>
                     </div>
 
-                    @if(session('error'))
-                        <div class="alert-inline alert-inline--error">
-                            {{ session('error') }}
-                        </div>
-                    @endif
-
                     <div id="itens-area" class="produtos-grid">
                         @foreach($produtos as $produto)
                             @php
@@ -311,6 +336,8 @@ body.kiosk-body {
                                 class="produto-card"
                                 data-categoria="{{ strtolower($nomeCategoria) }}"
                                 data-nome="{{ strtolower($produto->nome) }}"
+                                data-nome-original="{{ $produto->nome }}"
+                                data-preco="{{ $produto->preco }}"
                             >
                                 <div class="produto-top">
                                     <div class="produto-image-wrap">
@@ -441,6 +468,16 @@ body.kiosk-body {
                             </table>
                         </div>
 
+                        <div class="senha-box">
+                            <label for="senha_mercadinho_modal">Senha do Mercadinho</label>
+                            <input
+                                type="password"
+                                id="senha_mercadinho_modal"
+                                placeholder="Digite a senha para finalizar"
+                                autocomplete="off"
+                            >
+                        </div>
+
                         <div class="confirmacao-footer">
                             <div class="confirmacao-total">
                                 Total: <span id="confirmacao-total">R$ 0,00</span>
@@ -456,7 +493,8 @@ body.kiosk-body {
                                 </button>
 
                                 <button
-                                    type="submit"
+                                    type="button"
+                                    onclick="finalizarRetiradaComSenha()"
                                     class="btn-success"
                                 >
                                     Finalizar retirada
@@ -526,7 +564,7 @@ body.kiosk-body {
         </form>
     </div>
 @endif
- 
+
 <script>
     const MODO_KIOSK_ATIVO = @json($modoFixo);
 
@@ -608,6 +646,8 @@ body.kiosk-body {
         const folha = document.getElementById('funcionario-folha');
         const cargo = document.getElementById('funcionario-cargo');
         const hiddenFolha = document.getElementById('numero_folha_hidden');
+        const hiddenSenha = document.getElementById('senha_mercadinho_hidden');
+        const senhaModal = document.getElementById('senha_mercadinho_modal');
 
         if (info) info.style.display = 'none';
         if (form) form.style.display = 'none';
@@ -615,6 +655,8 @@ body.kiosk-body {
         if (folha) folha.innerText = '';
         if (cargo) cargo.innerText = '';
         if (hiddenFolha) hiddenFolha.value = '';
+        if (hiddenSenha) hiddenSenha.value = '';
+        if (senhaModal) senhaModal.value = '';
 
         mostrarSemFoto();
         limparQuantidades();
@@ -831,6 +873,7 @@ body.kiosk-body {
         const nomeFuncionarioEl = document.getElementById('funcionario-nome');
         const folhaFuncionarioEl = document.getElementById('funcionario-folha');
         const numeroFolhaHidden = document.getElementById('numero_folha_hidden');
+        const senhaModal = document.getElementById('senha_mercadinho_modal');
 
         if (!numeroFolhaHidden || !numeroFolhaHidden.value) {
             mostrarErro('Busque um colaborador antes de confirmar.');
@@ -883,6 +926,26 @@ body.kiosk-body {
         if (confirmacaoTotal) confirmacaoTotal.innerText = formatarReal(total);
         if (overlay) overlay.style.display = 'block';
         if (modal) modal.style.display = 'block';
+        if (senhaModal) {
+            senhaModal.value = '';
+            setTimeout(() => senhaModal.focus(), 100);
+        }
+    }
+
+    function finalizarRetiradaComSenha() {
+        const senha = document.getElementById('senha_mercadinho_modal');
+        const senhaHidden = document.getElementById('senha_mercadinho_hidden');
+        const form = document.getElementById('form-retirada');
+
+        const valorSenha = senha ? senha.value.trim() : '';
+
+        if (!valorSenha) {
+            mostrarErro('Digite a senha do mercadinho para finalizar.');
+            return;
+        }
+
+        if (senhaHidden) senhaHidden.value = valorSenha;
+        if (form) form.submit();
     }
 
     function fecharConfirmacao() {
@@ -939,7 +1002,6 @@ body.kiosk-body {
                 await el.msRequestFullscreen();
             }
         } catch (e) {
-            // navegador pode bloquear sem interação
         }
     }
 
@@ -1001,5 +1063,4 @@ body.kiosk-body {
         atualizarResumo();
     });
 </script>
-
 @endsection
