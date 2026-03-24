@@ -90,27 +90,33 @@
     }
 
     .kiosk-only {
-        min-height: 100vh;
-        height: 100vh;
-        padding: 10px 10px 72px 10px;
-        overflow: hidden;
-    }
+    min-height: 100vh;
+    height: auto;
+    padding: 10px 10px 72px 10px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+}
 
-    .kiosk-only .retirada-shell {
-        max-width: 100%;
-        height: calc(100vh - 82px);
-        display: flex;
-        flex-direction: column;
-    }
+.kiosk-only .retirada-shell {
+    max-width: 100%;
+    height: auto;
+    display: flex;
+    flex-direction: column;
+}
 
-    html.kiosk-html,
-    body.kiosk-body {
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        overscroll-behavior: none;
-        touch-action: manipulation;
-    }
+html.kiosk-html,
+body.kiosk-body {
+    width: 100%;
+    min-height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: auto;
+    touch-action: auto;
+}
+
+
+
 
     .senha-box {
         margin-top: 16px;
@@ -980,12 +986,13 @@
     }
 
     function aplicarModoTelaCheiaVisual() {
-        document.documentElement.classList.add('kiosk-html');
-        document.body.classList.add('kiosk-body');
-        document.body.style.overflow = 'hidden';
-        document.documentElement.style.overflow = 'hidden';
-        window.scrollTo(0, 1);
-    }
+    document.documentElement.classList.add('kiosk-html');
+    document.body.classList.add('kiosk-body');
+    document.body.style.overflowY = 'auto';
+    document.body.style.overflowX = 'hidden';
+    document.documentElement.style.overflowY = 'auto';
+    document.documentElement.style.overflowX = 'hidden';
+}
 
     async function tentarFullscreenAutomatico() {
         if (!MODO_KIOSK_ATIVO) return;
