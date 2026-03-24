@@ -99,6 +99,36 @@
         max-width: 100%;
     }
 
+    .senha-box {
+        margin-top: 16px;
+        padding: 14px;
+        border-radius: 14px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+    }
+
+    .senha-box label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 700;
+        color: #0f172a;
+    }
+
+    .senha-box input {
+        width: 100%;
+        height: 46px;
+        border: 1px solid #cbd5e1;
+        border-radius: 12px;
+        padding: 0 14px;
+        font-size: 15px;
+        outline: none;
+    }
+
+    .senha-box input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
     @media (max-width: 768px) {
         .kiosk-only {
             padding: 12px 12px 76px 12px;
@@ -153,6 +183,18 @@
 
         <div id="mensagem-erro" class="alert-box alert-box--error" style="display:none;"></div>
         <div id="mensagem-sucesso" class="alert-box alert-box--success" style="display:none;"></div>
+
+        @if(session('error'))
+            <div class="alert-box alert-box--error">
+                {{ session('error') }}
+            </div>
+        @endif
+
+        @if(session('success'))
+            <div class="alert-box alert-box--success">
+                {{ session('success') }}
+            </div>
+        @endif
 
         <div class="retirada-grid">
             <div class="panel-card">
@@ -236,7 +278,9 @@
             <div class="panel-card">
                 <form method="POST" action="{{ route('retiradas.store') }}" id="form-retirada" style="display:none;">
                     @csrf
+
                     <input type="hidden" name="numero_folha" id="numero_folha_hidden">
+                    <input type="hidden" name="senha_mercadinho" id="senha_mercadinho_hidden">
 
                     <div class="produtos-header">
                         <h3 class="panel-title panel-title--no-margin">Produtos</h3>
@@ -262,12 +306,6 @@
                             >
                         </div>
                     </div>
-
-                    @if(session('error'))
-                        <div class="alert-inline alert-inline--error">
-                            {{ session('error') }}
-                        </div>
-                    @endif
 
                     <div id="itens-area" class="produtos-grid">
                         @foreach($produtos as $produto)
@@ -416,6 +454,16 @@
                             </table>
                         </div>
 
+                        <div class="senha-box">
+                            <label for="senha_mercadinho_modal">Senha do Mercadinho</label>
+                            <input
+                                type="password"
+                                id="senha_mercadinho_modal"
+                                placeholder="Digite a senha para finalizar"
+                                autocomplete="off"
+                            >
+                        </div>
+
                         <div class="confirmacao-footer">
                             <div class="confirmacao-total">
                                 Total: <span id="confirmacao-total">R$ 0,00</span>
@@ -431,7 +479,8 @@
                                 </button>
 
                                 <button
-                                    type="submit"
+                                    type="button"
+                                    onclick="finalizarRetiradaComSenha()"
                                     class="btn-success"
                                 >
                                     Finalizar retirada
@@ -552,6 +601,7 @@
         document.getElementById('funcionario-folha').innerText = '';
         document.getElementById('funcionario-cargo').innerText = '';
         document.getElementById('numero_folha_hidden').value = '';
+        document.getElementById('senha_mercadinho_hidden').value = '';
         mostrarSemFoto();
         atualizarResumo();
     }
@@ -755,8 +805,25 @@
         document.getElementById('confirmacao-funcionario').innerText = nomeFuncionario;
         document.getElementById('confirmacao-folha').innerText = folhaFuncionario;
         document.getElementById('confirmacao-total').innerText = formatarReal(total);
+        document.getElementById('senha_mercadinho_modal').value = '';
         document.getElementById('confirmacao-overlay').style.display = 'block';
         document.getElementById('confirmacao-modal').style.display = 'block';
+
+        setTimeout(() => {
+            document.getElementById('senha_mercadinho_modal').focus();
+        }, 100);
+    }
+
+    function finalizarRetiradaComSenha() {
+        const senha = document.getElementById('senha_mercadinho_modal').value.trim();
+
+        if (!senha) {
+            mostrarErro('Digite a senha do mercadinho para finalizar.');
+            return;
+        }
+
+        document.getElementById('senha_mercadinho_hidden').value = senha;
+        document.getElementById('form-retirada').submit();
     }
 
     function fecharConfirmacao() {
